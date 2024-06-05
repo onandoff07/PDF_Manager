@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Metromony Bank</title>
+{% endblock %}
+
+{% block body %}
+<div class="content">
+    <h1 style="text-align: center">Metromony Bank</h1>
+
+    <!-- New PDFs Table -->
+    <h2 style="text-align: center">Uploaded PDF Files</h2>
+    {% if pdfs|length < 1 %}
+    <h4 style="text-align: center">There are no PDFs. Upload one below!</h4>
+    {% else %}
+    <table>
+        <tr>
+            <th>Age</th>
+            <th>Gender</th>
+            <th>Content</th>
+            <th>Added</th>
+            <th>Actions</th>
+        </tr>
+        {% for pdf in pdfs %}
+            <tr>
+                <td>{{ pdf.age }}</td>
+                <td>{{ pdf.gender }}</td>
+                <td>{{ pdf.file_name }}</td>
+                <td>{{ pdf.content }}</td>
+                <td>{{ pdf.date_created.date() }}</td>
+                <td>
+                    <a href="/download_pdf/{{pdf.id}}">Download</a>
+                    <br>
+                    <a href="/delete_pdf/{{pdf.id}}">Delete</a>
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+    
+    <body>
+        <h1>Search Form</h1>
+        <form action="/" method="POST">
+            <label for="search_gender">Search by Gender:</label>
+            <input type="text" name="search_gender" id="search_gender">
+            <br>
+            <label for="search_age">Search by Age:</label>
+            <input type="text" name="search_age" id="search_age">
+            <br>
+            <input type="submit" name="Search" value="Search">
+        </form>
+    </body>
+    
+    <!-- Form to Upload PDF -->
+    <div class="form">
+        <form action="/" method="POST" enctype="multipart/form-data">
+            <label for="Age">Age:</label>
+            <input type="text" name="age" id="Age">
+            <br>
+            <label for="Gender">Gender:</label>
+            <input type="text" name="gender" id="Gender">
+            <br>
+            <label for="pdf_file">Upload PDF:</label>
+            <input type="file" name="pdf_file" id="pdf_file" accept=".pdf">
+            <br>
+            <input type="submit" name="submit_button" value="Upload PDF">
+            <br>
+            <input type="submit" name="reset" value="Reset Query">
+        </form>
+    </div>
+</div>
+{% endblock %}
