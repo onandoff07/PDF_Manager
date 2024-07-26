@@ -2,6 +2,8 @@
 
 {% block head %}
 <title>Metromony Bank</title>
+<!-- Include jQuery from CDN -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 {% endblock %}
 
 {% block body %}
@@ -17,8 +19,10 @@
         <tr>
             <th>Age</th>
             <th>Gender</th>
-            <th>Content</th>
-            <th>Added</th>
+            <th>File name</th>
+            <th>Text Content</th>
+            <th>Image Content</th>
+            <th>Date</th>
             <th>Actions</th>
         </tr>
         {% for pdf in pdfs %}
@@ -26,7 +30,11 @@
                 <td>{{ pdf.age }}</td>
                 <td>{{ pdf.gender }}</td>
                 <td>{{ pdf.file_name }}</td>
-                <td>{{ pdf.content }}</td>
+                <td>
+                    {{ pdf.content[:50] }}{% if pdf.content|length > 50 %}... 
+                    <a href="javascript:void(0);" class="view-more" data-pdf-id="{{ pdf.id }}">View More</a>{% endif %}
+                </td>
+                <td></td>
                 <td>{{ pdf.date_created.date() }}</td>
                 <td>
                     <a href="/download_pdf/{{pdf.id}}">Download</a>
@@ -37,7 +45,57 @@
         {% endfor %}
     </table>
     {% endif %}
+    <div id="detailsModal" style="display:none;">
+        <p id="pdfDetails"></p>
+        <button onclick="closeModal()">Close</button>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+    $('.view-more').click(function() {
+        var pdfId = $(this).data('pdf-id');
+        viewMore(pdfId);
+    });
+});
+        function viewMore(pdfId) {
+            console.log(pdfId);  // For debugging
+            $.ajax({
+                url: '/view_more/' + pdfId,
+                method: 'GET',
+                success: function(response) {
+                    console.log("Success:", response);  // For debugging
+                    $('#pdfDetails').text(response.content);  // Display content
+                    $('#modalOverlay').show();  // Show overlay
+                    $('#detailsModal').show();  // Show modal
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+            // Print detailed error information
+            console.error('Error Details:', {
+                status: jqXHR.status, // HTTP status code
+                statusText: jqXHR.statusText, // Status text (e.g., "Not Found")
+                responseText: jqXHR.responseText, // Response text (e.g., error message)
+                error: errorThrown // Exception thrown
+            });
+            
+            // Display a user-friendly error message
+            let errorMessage = 'An error occurred';
+            try {
+                const errorResponse = JSON.parse(jqXHR.responseText);
+                errorMessage = errorResponse.error || 'Unknown error';
+            } catch (e) {
+                errorMessage = errorThrown || 'Unknown error';
+            }
+
+            alert('Error: ' + errorMessage);  // Alert the user
+        }
+    });
+        }
     
+        function closeModal() {
+            $('#modalOverlay').hide();  // Hide overlay
+            $('#detailsModal').hide();  // Hide modal
+        }
+    </script>
     <body>
         <h1>Search Form</h1>
         <form action="/" method="POST">
@@ -48,6 +106,8 @@
             <input type="text" name="search_age" id="search_age">
             <br>
             <input type="submit" name="Search" value="Search">
+            <br>
+            <input type="submit" name="reset" value="Reset Query">
         </form>
     </body>
     
@@ -64,8 +124,6 @@
             <input type="file" name="pdf_file" id="pdf_file" accept=".pdf">
             <br>
             <input type="submit" name="submit_button" value="Upload PDF">
-            <br>
-            <input type="submit" name="reset" value="Reset Query">
         </form>
     </div>
 </div>
