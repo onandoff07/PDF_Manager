@@ -1,3 +1,4 @@
+import base64
 from flask import Flask, jsonify, render_template, url_for, request, redirect, send_file
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -6,6 +7,7 @@ import io
 import PyPDF2
 import fitz  # PyMuPDF
 import os
+import json
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
@@ -29,7 +31,7 @@ class PDFFile(db.Model):
     file_name = db.Column(db.String(255), nullable=False)
     file_data = db.Column(db.LargeBinary, nullable=False)
     content = db.Column(db.String(200), nullable=False)  # Add content field
-    #images = db.Column(db.String(200), nullable=False)
+    images = db.Column(db.JSON, nullable=True)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
     #date_created = db.Column(db.DateTime, default=datetime.utcnow)  # Add date_created field
@@ -53,6 +55,9 @@ def index():
         if "reset" in request.form:
             print("3")
             pdfs = PDFFile.query.order_by(PDFFile.date_created).all()
+            for pdf in pdfs:
+                if pdf.images:
+                    pdf.images = json.loads(pdf.images)
             #query = PDFFile.query #doesn't order by date like the first line does
             #query = query.filter_by() 
             #pdfs = query.all()
@@ -73,6 +78,9 @@ def index():
                 query = query.filter_by(age=search_age)
                 
             pdfs = query.all()
+            for pdf in pdfs:
+                if pdf.images:
+                    pdf.images = json.loads(pdf.images)
             return render_template('index.html', pdfs=pdfs, search_gender=search_gender, search_age=search_age)
         elif 'submit_button' in request.form:
             print("2")
@@ -91,8 +99,14 @@ def index():
             #if file and file.filename.endswith('.pdf'):
             file_data = file.read()
             pdf_text = decode_pdf(file_data)
-                
-            new_pdf = PDFFile(age=age, gender=gender, file_name=file.filename, file_data=file_data, content=pdf_text)
+            pdf_image = decode_pdf_images(file_data)
+            print("len: ", len(pdf_image))
+            images_json = json.dumps(pdf_image)
+            #for i in pdf_image:
+            #    print(type(i))
+                #print(json.load(i))
+            
+            new_pdf = PDFFile(age=age, gender=gender, file_name=file.filename, file_data=file_data, content=pdf_text, images=images_json)
                 
             try:
                 db.session.add(new_pdf)
@@ -102,6 +116,9 @@ def index():
                 return f"We could not add the specific item due to this error: {str(e)}"
         
     pdfs = PDFFile.query.order_by(PDFFile.date_created).all()
+    for pdf in pdfs:
+        if pdf.images:
+            pdf.images = json.loads(pdf.images)
     return render_template('index.html', pdfs=pdfs)
 '''
 def extract_images_from_pdf(pdf_path, output_folder):
@@ -123,7 +140,7 @@ def extract_images_from_pdf(pdf_path, output_folder):
     print("Images extracted and saved to:", output_folder)
     '''
 
-def extract_images_from_pdf(pdf_path):
+def extract_images_from_pdf(pdf_path): #not used
     pdf_document = fitz.open(pdf_path)
     images = []
     for page_num in range(len(pdf_document)):
@@ -154,6 +171,27 @@ def decode_pdf(pdf_data):
     for page_num in range(len(pdf_reader.pages)):
         text += pdf_reader.pages[page_num].extract_text()
     return text
+
+def decode_pdf_images(pdf_data):
+    doc = fitz.open(stream=pdf_data, filetype="pdf")
+    images = []
+
+    for page_num in range(len(doc)):
+        page = doc.load_page(page_num)
+        image_list = page.get_images(full=True)
+
+        for image_index, img in enumerate(image_list):
+            xref = img[0]
+            base_image = doc.extract_image(xref)
+            image_bytes = base_image["image"]
+            image_ext = base_image["ext"]
+
+            # Convert image bytes to a data URL
+            image_data_url = f"data:image/{image_ext};base64," + base64.b64encode(image_bytes).decode('utf-8')
+            images.append(image_data_url)
+    print(len(images))
+
+    return images
 
 @app.route('/delete_pdf/<int:id>')
 def delete_pdf(id):

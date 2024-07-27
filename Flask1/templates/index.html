@@ -33,8 +33,15 @@
                 <td>
                     {{ pdf.content[:50] }}{% if pdf.content|length > 50 %}... 
                     <a href="javascript:void(0);" class="view-more" data-pdf-id="{{ pdf.id }}">View More</a>{% endif %}
-                </td>
-                <td></td>
+                    <td>
+                        {% if pdf.images %}
+                            {% for image in pdf.images %}
+                                <div>
+                                    <img src="{{ image }}" alt="Extracted Image" style="max-width: 100px; max-height: 100px;">
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </td>
                 <td>{{ pdf.date_created.date() }}</td>
                 <td>
                     <a href="/download_pdf/{{pdf.id}}">Download</a>
