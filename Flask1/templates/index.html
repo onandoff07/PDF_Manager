@@ -9,7 +9,7 @@
 {% block body %}
 <div class="content">
     <body>
-        <h1>Hello you are logged in.</h1>
+        <h1>Hello, you are logged in!</h1>
         <a href="{{url_for('logout')}}">Press here to logout</a>
     </body>
     <h1 style="text-align: center">Metromony Bank</h1>
@@ -144,13 +144,13 @@
     <div class="form">
         <form action="/" method="POST" enctype="multipart/form-data">
             <label for="Age">Age:</label>
-            <input type="text" name="age" id="Age">
+            <input type="text" name="age" id="Age" required>
             <br>
             <label for="Gender">Gender:</label>
-            <input type="text" name="gender" id="Gender">
+            <input type="text" name="gender" id="Gender" required>
             <br>
             <label for="pdf_file">Upload PDF:</label>
-            <input type="file" name="pdf_file" id="pdf_file" accept=".pdf">
+            <input type="file" name="pdf_file" id="pdf_file" accept=".pdf" required>
             <br>
             <label for="pictures">Upload Extra Pictures:</label>
             <input type="file" name="pictures" id="pictures" accept="image/*" multiple>

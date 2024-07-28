@@ -15,6 +15,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError
 from flask_bcrypt import Bcrypt
+from sqlalchemy import func
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
@@ -148,17 +150,17 @@ def index():
         elif 'search_gender' in request.form or 'search_age' in request.form and 'submit_button' not in request.form:
             print("1")
             #print("yo")
-            search_gender = request.form.get('search_gender')
-            search_age = request.form.get('search_age')
+            search_gender = request.form.get('search_gender').lower()
+            search_age = request.form.get('search_age').lower()
             #print("yo1: ", search_gender)
             #print("yo2: ", search_age)
 
             query = PDFFile.query
             
             if search_gender:
-                query = query.filter_by(gender=search_gender)
+                query = query.filter(func.lower(PDFFile.gender)==search_gender)
             if search_age:
-                query = query.filter_by(age=search_age)
+                query = query.filter(func.lower(PDFFile.age)==search_age)
                 
             pdfs = query.all()
             for pdf in pdfs:
@@ -174,6 +176,19 @@ def index():
             print("test: ", file)
             age = request.form['age']
             gender = request.form['gender']
+
+            if not age or not gender or not file:
+                error = "Please fill out all required fields and upload the PDF file."
+                #pdfs = PDFFile.query.order_by(PDFFile.date_created).all()
+                for pdf in pdfs: #I thought this would be undefined
+                    print("interesting")
+                    print(pdfs)
+                    if pdf.images:
+                        pdf.images = json.loads(pdf.images)
+                    if pdf.extra_images:
+                        pdf.extra_images = json.loads(pdf.extra_images)
+                return render_template('index.html', pdfs=pdfs, error=error)
+
         #print(file)
         #print(age)
         #print(gender)
@@ -195,11 +210,14 @@ def index():
                 image_base64 = base64.b64encode(image_bytes).decode('utf-8')
                 extra_images.append(image_base64)
             extra_images_json = json.dumps(extra_images)
+            if len(extra_images) == 0:
+                print("true")
+                new_pdf = PDFFile(age=age, gender=gender, file_name=file.filename, file_data=file_data, content=pdf_text, images=images_json)
             #for i in pdf_image:
             #    print(type(i))
                 #print(json.load(i))
-            
-            new_pdf = PDFFile(age=age, gender=gender, file_name=file.filename, file_data=file_data, content=pdf_text, images=images_json,extra_images = extra_images_json)
+            else:
+                new_pdf = PDFFile(age=age, gender=gender, file_name=file.filename, file_data=file_data, content=pdf_text, images=images_json,extra_images = extra_images_json)
                 
             try:
                 db.session.add(new_pdf)
