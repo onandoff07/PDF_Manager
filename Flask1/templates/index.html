@@ -12,16 +12,24 @@
 
     <!-- New PDFs Table -->
     <h2 style="text-align: center">Uploaded PDF Files</h2>
+    <style>
+        .container {
+            display: flex;
+            justify-content: center; /* Aligns content to the right */
+        }
+    </style>
     {% if pdfs|length < 1 %}
     <h4 style="text-align: center">There are no PDFs. Upload one below!</h4>
     {% else %}
+    <div class="container">
     <table>
         <tr>
             <th>Age</th>
             <th>Gender</th>
             <th>File name</th>
-            <th>Text Content</th>
-            <th>Image Content</th>
+            <th>Text Content from PDF</th>
+            <th>Image Content from PDF</th>
+            <th>Extra Images</th>
             <th>Date</th>
             <th>Actions</th>
         </tr>
@@ -37,7 +45,16 @@
                         {% if pdf.images %}
                             {% for image in pdf.images %}
                                 <div>
-                                    <img src="{{ image }}" alt="Extracted Image" style="max-width: 100px; max-height: 100px;">
+                                    <img src="{{ image }}" alt="Extracted Image" style="max-width: 400px; max-height: 400px;">
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if pdf.extra_images %}
+                            {% for image in pdf.extra_images %}
+                                <div>
+                                    <img src="data:image/jpeg;base64,{{ image }}" alt="Extra Picture" style="max-width: 400px; max-height: 400px;">
                                 </div>
                             {% endfor %}
                         {% endif %}
@@ -51,6 +68,7 @@
             </tr>
         {% endfor %}
     </table>
+</div>
     {% endif %}
     <div id="detailsModal" style="display:none;">
         <p id="pdfDetails"></p>
@@ -106,11 +124,11 @@
     <body>
         <h1>Search Form</h1>
         <form action="/" method="POST">
-            <label for="search_gender">Search by Gender:</label>
-            <input type="text" name="search_gender" id="search_gender">
-            <br>
             <label for="search_age">Search by Age:</label>
             <input type="text" name="search_age" id="search_age">
+            <br>
+            <label for="search_gender">Search by Gender:</label>
+            <input type="text" name="search_gender" id="search_gender">
             <br>
             <input type="submit" name="Search" value="Search">
             <br>
@@ -129,6 +147,9 @@
             <br>
             <label for="pdf_file">Upload PDF:</label>
             <input type="file" name="pdf_file" id="pdf_file" accept=".pdf">
+            <br>
+            <label for="pictures">Upload Extra Pictures:</label>
+            <input type="file" name="pictures" id="pictures" accept="image/*" multiple>
             <br>
             <input type="submit" name="submit_button" value="Upload PDF">
         </form>

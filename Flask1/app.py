@@ -30,6 +30,7 @@ class PDFFile(db.Model):
     gender = db.Column(db.String(255), nullable=False)
     file_name = db.Column(db.String(255), nullable=False)
     file_data = db.Column(db.LargeBinary, nullable=False)
+    extra_images = db.Column(db.JSON, nullable=True)
     content = db.Column(db.String(200), nullable=False)  # Add content field
     images = db.Column(db.JSON, nullable=True)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
@@ -58,6 +59,8 @@ def index():
             for pdf in pdfs:
                 if pdf.images:
                     pdf.images = json.loads(pdf.images)
+                if pdf.extra_images:
+                    pdf.extra_images = json.loads(pdf.extra_images)
             #query = PDFFile.query #doesn't order by date like the first line does
             #query = query.filter_by() 
             #pdfs = query.all()
@@ -81,6 +84,8 @@ def index():
             for pdf in pdfs:
                 if pdf.images:
                     pdf.images = json.loads(pdf.images)
+                if pdf.extra_images:
+                    pdf.extra_images = json.loads(pdf.extra_images)
             return render_template('index.html', pdfs=pdfs, search_gender=search_gender, search_age=search_age)
         elif 'submit_button' in request.form:
             print("2")
@@ -102,11 +107,19 @@ def index():
             pdf_image = decode_pdf_images(file_data)
             print("len: ", len(pdf_image))
             images_json = json.dumps(pdf_image)
+
+            extra_pictures = request.files.getlist('pictures')
+            extra_images = []
+            for picture in extra_pictures:
+                image_bytes = picture.read()
+                image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                extra_images.append(image_base64)
+            extra_images_json = json.dumps(extra_images)
             #for i in pdf_image:
             #    print(type(i))
                 #print(json.load(i))
             
-            new_pdf = PDFFile(age=age, gender=gender, file_name=file.filename, file_data=file_data, content=pdf_text, images=images_json)
+            new_pdf = PDFFile(age=age, gender=gender, file_name=file.filename, file_data=file_data, content=pdf_text, images=images_json,extra_images = extra_images_json)
                 
             try:
                 db.session.add(new_pdf)
@@ -119,6 +132,8 @@ def index():
     for pdf in pdfs:
         if pdf.images:
             pdf.images = json.loads(pdf.images)
+        if pdf.extra_images:
+            pdf.extra_images = json.loads(pdf.extra_images)
     return render_template('index.html', pdfs=pdfs)
 '''
 def extract_images_from_pdf(pdf_path, output_folder):
