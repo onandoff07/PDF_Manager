@@ -19,17 +19,89 @@ from flask_bcrypt import Bcrypt
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
 db = SQLAlchemy(app)
+bcrypt = Bcrypt(app) #allows hashing passwords
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SECRET_KEY'] = 'thisisasecretkey7'
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 
-
-class Todo(db.Model):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.String(200), nullable=False)
-    completed = db.Column(db.Integer, default=0)
-    date_created = db.Column(db.DateTime, default=datetime.utcnow)
+    username = db.Column(db.String(20), nullable=False, unique=True)
+    password = db.Column(db.String(80), nullable=False)
 
-    def __repr__(self):
-        return '<Task %r>' % self.id
+
+class RegisterForm(FlaskForm):
+    username = StringField(validators=[
+                           InputRequired(), Length(min=4, max=20)], render_kw={"placeholder": "Username"})
+
+    password = PasswordField(validators=[
+                             InputRequired(), Length(min=8, max=20)], render_kw={"placeholder": "Password"})
+
+    submit = SubmitField('Register')
+
+    def validate_username(self, username):
+        existing_user_username = User.query.filter_by(
+            username=username.data).first()
+        if existing_user_username:
+            raise ValidationError(
+                'That username already exists. Please choose a different one.')
+
+
+class LoginForm(FlaskForm):
+    username = StringField(validators=[
+                           InputRequired(), Length(min=4, max=20)], render_kw={"placeholder": "Username"})
+
+    password = PasswordField(validators=[
+                             InputRequired(), Length(min=8, max=20)], render_kw={"placeholder": "Password"})
+
+    submit = SubmitField('Login')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user:
+            if bcrypt.check_password_hash(user.password, form.password.data):
+                login_user(user)
+                #return redirect(url_for('dashboard'))
+                return redirect(url_for('index'))
+    return render_template('login.html', form=form)
+
+
+#@app.route('/dashboard', methods=['GET', 'POST'])
+#@login_required
+#def dashboard():
+#    return render_template('dashboard.html')
+
+
+@app.route('/logout', methods=['GET', 'POST'])
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+
+@ app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegisterForm()
+
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data)
+        new_user = User(username=form.username.data, password=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
+        return redirect(url_for('login'))
+
+    return render_template('register.html', form=form)
 
 class PDFFile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -56,6 +128,7 @@ with app.app_context():
     db.create_all()
 
 @app.route('/', methods=['POST', 'GET'])
+@login_required #have to put it right before function definition otherwise it won't work
 def index():
     if request.method == 'POST':
         #if 'pdf_file' in request.files:
@@ -215,7 +288,9 @@ def decode_pdf_images(pdf_data):
 
     return images
 
+
 @app.route('/delete_pdf/<int:id>')
+@login_required
 def delete_pdf(id):
     task_to_delete = PDFFile.query.get_or_404(id)
     try:
@@ -225,7 +300,9 @@ def delete_pdf(id):
     except:
         f"We could not delete the specific item due to this error: {str(e)}"
 
+
 @app.route('/view_more/<int:id>', methods=['GET'])
+@login_required
 def view_more(id):
     #pdf = next((p for p in pdfs if p['id'] == pdf_id), None)
     try:
@@ -252,7 +329,9 @@ def view_more(id):
     else:
         return jsonify({'error': 'PDF not found'}), 404
     """
+
 @app.route('/update/<int:id>', methods=['GET', 'POST'])
+@login_required
 def update(id):
     task = PDFFile.query.get_or_404(id)
     if request.method == 'POST':
@@ -267,6 +346,7 @@ def update(id):
         return render_template('update.html', task = task)
 
 @app.route('/download_pdf/<int:id>')
+@login_required
 def download_pdf(id):
     pdf_file = PDFFile.query.get_or_404(id)
     return send_file(io.BytesIO(pdf_file.file_data), download_name=pdf_file.file_name, as_attachment=True)
