@@ -113,6 +113,7 @@ class PDFFile(db.Model):
     file_data = db.Column(db.LargeBinary, nullable=False)
     extra_images = db.Column(db.JSON, nullable=True)
     content = db.Column(db.String(200), nullable=False)  # Add content field
+    extra_images_status = db.Column(db.Boolean, nullable=False, default=False) 
     images = db.Column(db.JSON, nullable=True)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -139,10 +140,16 @@ def index():
             print("3")
             pdfs = PDFFile.query.order_by(PDFFile.date_created).all()
             for pdf in pdfs:
+                print("a: ", pdf.extra_images_status)
+                pdf.extra_images_status = False
+                print("b: ", pdf.extra_images_status)
                 if pdf.images:
                     pdf.images = json.loads(pdf.images)
                 if pdf.extra_images:
+                    print("c: ", pdf.extra_images_status)
+                    pdf.extra_images_status = True
                     pdf.extra_images = json.loads(pdf.extra_images)
+            print("d: ", pdf.extra_images_status)
             #query = PDFFile.query #doesn't order by date like the first line does
             #query = query.filter_by() 
             #pdfs = query.all()
@@ -164,10 +171,16 @@ def index():
                 
             pdfs = query.all()
             for pdf in pdfs:
+                print("a2: ", pdf.extra_images_status)
+                pdf.extra_images_status = False
+                print("b2: ", pdf.extra_images_status)
                 if pdf.images:
                     pdf.images = json.loads(pdf.images)
                 if pdf.extra_images:
+                    print("c2: ", pdf.extra_images_status)
+                    pdf.extra_images_status = True
                     pdf.extra_images = json.loads(pdf.extra_images)
+            print("d2: ", pdf.extra_images_status)
             return render_template('index.html', pdfs=pdfs, search_gender=search_gender, search_age=search_age)
         elif 'submit_button' in request.form:
             print("2")
@@ -181,12 +194,14 @@ def index():
                 error = "Please fill out all required fields and upload the PDF file."
                 #pdfs = PDFFile.query.order_by(PDFFile.date_created).all()
                 for pdf in pdfs: #I thought this would be undefined
+                    pdf.extra_images_status = False
                     print("interesting")
                     print(pdfs)
                     if pdf.images:
                         pdf.images = json.loads(pdf.images)
                     if pdf.extra_images:
                         pdf.extra_images = json.loads(pdf.extra_images)
+                        pdf.extra_images_status = True
                 return render_template('index.html', pdfs=pdfs, error=error)
 
         #print(file)
@@ -205,19 +220,22 @@ def index():
 
             extra_pictures = request.files.getlist('pictures')
             extra_images = []
+            extra_images_status = False
             for picture in extra_pictures:
                 image_bytes = picture.read()
                 image_base64 = base64.b64encode(image_bytes).decode('utf-8')
                 extra_images.append(image_base64)
             extra_images_json = json.dumps(extra_images)
-            if len(extra_images) == 0:
-                print("true")
-                new_pdf = PDFFile(age=age, gender=gender, file_name=file.filename, file_data=file_data, content=pdf_text, images=images_json)
+            if len(extra_images) != 0:
+                extra_images_status = True
+            print("d3: ", extra_images_status)
+             #   print("true")
+              #  new_pdf = PDFFile(age=age, gender=gender, file_name=file.filename, file_data=file_data, content=pdf_text, images=images_json)
             #for i in pdf_image:
             #    print(type(i))
                 #print(json.load(i))
-            else:
-                new_pdf = PDFFile(age=age, gender=gender, file_name=file.filename, file_data=file_data, content=pdf_text, images=images_json,extra_images = extra_images_json)
+            #else:
+            new_pdf = PDFFile(age=age, gender=gender, file_name=file.filename, file_data=file_data, content=pdf_text, images=images_json,extra_images = extra_images_json ,extra_images_status=extra_images_status)
                 
             try:
                 db.session.add(new_pdf)
@@ -228,10 +246,17 @@ def index():
         
     pdfs = PDFFile.query.order_by(PDFFile.date_created).all()
     for pdf in pdfs:
+        print("a4: ", pdf.extra_images_status)
+        pdf.extra_images_status = False
+        print("b4: ", pdf.extra_images_status)
         if pdf.images:
             pdf.images = json.loads(pdf.images)
-        if pdf.extra_images:
+        if len(pdf.extra_images) != 4: #[""] has length of 4 and means no extra images
+            print("c44: ", len(pdf.extra_images))
+            print("c4: ", pdf.extra_images_status)
+            pdf.extra_images_status = True
             pdf.extra_images = json.loads(pdf.extra_images)
+        print("d4: ", pdf.extra_images_status)
     return render_template('index.html', pdfs=pdfs)
 '''
 def extract_images_from_pdf(pdf_path, output_folder):

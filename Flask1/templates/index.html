@@ -55,13 +55,17 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if pdf.extra_images %}
-                            {% for image in pdf.extra_images %}
-                                <div>
-                                    <img src="data:image/jpeg;base64,{{ image }}" alt="Extra Picture" style="max-width: 400px; max-height: 400px;">
-                                </div>
-                            {% endfor %}
-                        {% endif %}
+                        {% if pdf.extra_images_status %}
+    {% if pdf.extra_images %}
+        {% for image in pdf.extra_images %}
+            <div>
+                <img src="data:image/jpeg;base64,{{ image }}" alt="Extra Picture" style="max-width: 400px; max-height: 400px;">
+            </div>
+        {% endfor %}
+    {% else %}
+        <p></p>
+    {% endif %}
+{% endif %}
                     </td>
                 <td>{{ pdf.date_created.date() }}</td>
                 <td>
